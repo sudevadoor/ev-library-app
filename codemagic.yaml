@@ -1,0 +1,83 @@
+workflows:
+  android-release:
+    name: E.V. LIBRARY - Android Release
+    max_build_duration: 120
+    environment:
+      flutter: stable
+    scripts:
+      - name: Fix Flutter project structure
+        script: |
+          set -e
+          mkdir -p lib/screens lib/services
+          [ -f main.dart ] && mv -f main.dart lib/main.dart || true
+          [ -f add_book_screen.dart ] && mv -f add_book_screen.dart lib/screens/add_book_screen.dart || true
+          [ -f barcode_scanner_screen.dart ] && mv -f barcode_scanner_screen.dart lib/screens/barcode_scanner_screen.dart || true
+          [ -f api_service.dart ] && mv -f api_service.dart lib/services/api_service.dart || true
+          rm -f AndroidManifest.xml
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("lib/services/api_service.dart")
+          if p.exists():
+              s = p.read_text()
+              url = "https://script.google.com/macros/s/AKfycbw0w6a4OKmYGLuRVNrjr-PzicwOUZ9iz3MO6Ujc5rePZhXn6CSELuAHyVRJ0VfyeXzq/exec"
+              for old in ["YOUR_APPS_SCRIPT_URL", "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE", "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"]:
+                  s = s.replace(old, url)
+              p.write_text(s)
+          PY
+
+      - name: Generate Android platform
+        script: |
+          set -e
+          flutter create --platforms=android --org com.casadoor --project-name ev_library_books --no-pub .
+
+      - name: Configure E.V. LIBRARY and ML Kit
+        script: |
+          set -e
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          if "android.permission.CAMERA" not in s:
+              s = s.replace(
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">',
+                  '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n'
+                  '    <uses-permission android:name="android.permission.CAMERA" />'
+              )
+          s = s.replace('android:label="ev_library_books"', 'android:label="E.V. LIBRARY"')
+          p.write_text(s)
+          PY
+
+          cat > android/app/proguard-rules.pro <<'EOF'
+          -dontwarn com.google.mlkit.vision.text.chinese.**
+          -dontwarn com.google.mlkit.vision.text.devanagari.**
+          -dontwarn com.google.mlkit.vision.text.japanese.**
+          -dontwarn com.google.mlkit.vision.text.korean.**
+          EOF
+
+          if [ -f android/app/build.gradle.kts ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle.kts")
+          s = p.read_text()
+          s = s.replace('minifyEnabled = true', 'minifyEnabled = false')
+          p.write_text(s)
+          PY
+          elif [ -f android/app/build.gradle ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle")
+          s = p.read_text()
+          s = s.replace('minifyEnabled true', 'minifyEnabled false')
+          s = s.replace('minifyEnabled = true', 'minifyEnabled = false')
+          p.write_text(s)
+          PY
+          fi
+
+      - name: Get Flutter packages
+        script: flutter pub get
+
+      - name: Build release APK
+        script: flutter build apk --release --no-shrink
+
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
