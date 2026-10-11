@@ -190,6 +190,25 @@ class _AddBookScreenState extends State<AddBookScreen> {
     }
   }
 
+  int maxLinesForOcr(TextEditingController controller) =>
+      controller == subjectsController ? 3 : 1;
+
+  /// Cleans raw OCR output: removes stray symbols, joins broken lines
+  /// into one line and collapses repeated spaces.
+  String cleanOcrText(String raw, {bool singleLine = true}) {
+    var lines = raw
+        .split(RegExp(r'[\r\n]+'))
+        .map((l) => l
+            .replaceAll(RegExp(r'[|_~^`\\<>{}\[\]=*#@]+'), ' ')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim())
+        // drop fragments with no letters or digits (OCR noise)
+        .where((l) => RegExp(r'[\p{L}\p{N}]', unicode: true).hasMatch(l))
+        .toList();
+    final joined = lines.join(singleLine ? ' ' : '\n').trim();
+    return joined.replaceAll(RegExp(r' {2,}'), ' ');
+  }
+
   Future<void> ocrInto(
     TextEditingController controller, {
     bool numericOnly = false,
@@ -197,7 +216,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
     final text = await recognizeCameraText();
     if (text == null || text.trim().isEmpty) return;
 
-    String value = text.trim();
+    String value = cleanOcrText(text, singleLine: maxLinesForOcr(controller) == 1);
     if (numericOnly) {
       final match = RegExp(r'\d+(?:\.\d+)?').firstMatch(value);
       value = match?.group(0) ?? value;
@@ -667,7 +686,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
           builder: (_) => AlertDialog(
             title: const Text('Book Saved'),
             content: Text(
-              'Stock Number: $stock\nCall Number: ${callNumberController.text}',
+              'Stock Number: $stock\nCall Number: ${(result['callNumber']?.toString() ?? '').isNotEmpty ? result['callNumber'] : callNumberController.text}',
             ),
             actions: [
               FilledButton(
@@ -1052,6 +1071,41 @@ class _AddBookScreenState extends State<AddBookScreen> {
                           : const Icon(Icons.auto_awesome),
                     ),
                   ],
+                ),
+
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: callNumberController,
+                  builder: (context, value, _) {
+                    final text = value.text.trim();
+                    if (text.isEmpty) return const SizedBox.shrink();
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.local_library),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Call Number', style: TextStyle(fontSize: 12)),
+                                SelectableText(
+                                  text,
+                                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 24),
