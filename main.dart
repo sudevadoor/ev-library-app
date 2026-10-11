@@ -434,6 +434,7 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
               itemBuilder: (_, index) {
                 final b =
                     Map<String, dynamic>.from(books[index]);
+                final shelf = '${b['Shelf'] ?? ''}'.trim();
                 return ListTile(
                   title: Text(
                     '${b['Title'] ?? ''}',
@@ -441,8 +442,43 @@ class _SearchBooksScreenState extends State<SearchBooksScreen> {
                   subtitle: Text(
                     'Stock: ${b['Stock Number'] ?? ''}   '
                     'Call: ${b['Call Number'] ?? ''}\n'
-                    'Author: ${b['Author'] ?? ''}',
+                    'Author: ${b['Author'] ?? ''}\n'
+                    'Shelf: ${shelf.isEmpty ? '-' : shelf}',
                   ),
+                  isThreeLine: true,
+                  trailing: shelf.isEmpty
+                      ? null
+                      : Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE3EBFF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'SHELF',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF4A6BD6),
+                                ),
+                              ),
+                              Text(
+                                shelf,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2F3E6B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                 );
               },
             ),
