@@ -13,18 +13,122 @@ Future<void> main() async {
 class LibraryApp extends StatelessWidget {
   const LibraryApp({super.key});
 
+  static const Color seed = Color(0xFF6C8EF5); // soft periwinkle blue
+
   @override
   Widget build(BuildContext context) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: const Color(0xFF5B7FE8),
+      primaryContainer: const Color(0xFFE3EBFF),
+      secondaryContainer: const Color(0xFFFFE9D6),
+      surface: Colors.white,
+    );
+
     return MaterialApp(
       title: 'E.V. LIBRARY',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: scheme,
         useMaterial3: true,
+        scaffoldBackgroundColor: Colors.transparent,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: true,
+          foregroundColor: Color(0xFF2F3E6B),
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+            color: Color(0xFF2F3E6B),
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+            side: const BorderSide(color: Color(0xFFE6ECFA)),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
       ),
+      builder: (context, child) =>
+          _PatternBackground(child: child ?? const SizedBox.shrink()),
       home: const HomeScreen(),
     );
   }
+}
+
+/// Light gradient with a faint dotted pattern and soft circles.
+class _PatternBackground extends StatelessWidget {
+  final Widget child;
+  const _PatternBackground({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF3F6FF), // pale blue
+            Color(0xFFFFF6EE), // pale peach
+            Color(0xFFF1FBF6), // pale mint
+          ],
+        ),
+      ),
+      child: CustomPaint(
+        painter: _PatternPainter(),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _PatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // faint dot grid
+    final dot = Paint()..color = const Color(0xFF5B7FE8).withValues(alpha: 0.07);
+    const gap = 28.0;
+    for (double y = 14; y < size.height; y += gap) {
+      for (double x = ((y / gap).floor().isEven ? 14 : 28); x < size.width; x += gap) {
+        canvas.drawCircle(Offset(x, y), 1.6, dot);
+      }
+    }
+
+    // soft decorative circles
+    canvas.drawCircle(
+      Offset(size.width * 0.92, size.height * 0.08),
+      90,
+      Paint()..color = const Color(0xFFFFC9A8).withValues(alpha: 0.25),
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.05, size.height * 0.62),
+      110,
+      Paint()..color = const Color(0xFFB8E6D0).withValues(alpha: 0.28),
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.85, size.height * 0.95),
+      120,
+      Paint()..color = const Color(0xFFC9D6FF).withValues(alpha: 0.35),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class HomeScreen extends StatelessWidget {
@@ -60,6 +164,8 @@ class HomeScreen extends StatelessWidget {
             _HomeTile(
               icon: Icons.add_box,
               title: 'Add Book',
+              tint: const Color(0xFFE3EBFF),
+              iconColor: const Color(0xFF4A6BD6),
               onTap: () {
                 Navigator.push(
                   context,
@@ -72,6 +178,8 @@ class HomeScreen extends StatelessWidget {
             _HomeTile(
               icon: Icons.search,
               title: 'Search Books',
+              tint: const Color(0xFFFFE9D6),
+              iconColor: const Color(0xFFE08A4B),
               onTap: () {
                 Navigator.push(
                   context,
@@ -92,11 +200,15 @@ class _HomeTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
+  final Color tint;
+  final Color iconColor;
 
   const _HomeTile({
     required this.icon,
     required this.title,
     required this.onTap,
+    this.tint = const Color(0xFFE3EBFF),
+    this.iconColor = const Color(0xFF4A6BD6),
   });
 
   @override
@@ -104,17 +216,23 @@ class _HomeTile extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(22),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 46),
-            const SizedBox(height: 12),
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
+              child: Icon(icon, size: 38, color: iconColor),
+            ),
+            const SizedBox(height: 14),
             Text(
               title,
               style: const TextStyle(
                 fontSize: 17,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2F3E6B),
               ),
             ),
           ],
